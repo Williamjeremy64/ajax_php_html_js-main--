@@ -1,0 +1,167 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: initial;
+  font-size: initial;
+  line-height: initial;
+  color: initial;
+  background-color: initial;
+}
+
+section {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 2rem;
+}
+
+/************************************************************/
+/*          container                       */
+/***********************************************************/
+.containerCheckAccount,
+.containerMenuAccount,
+.containerBalance,
+.containerTransfert,
+.containerChangeCode,
+.containerTransactions,
+.containerAutresOptions {
+  border: 2px solid gray;
+  width: 100%;
+  padding: 10px 20px 10px 20px;
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.containerCheckAccount,
+.containerTransfert {
+  min-width: 450px;
+  max-width: 450px;
+  align-items: center;
+}
+
+input {
+  min-width:391px;
+  max-width: 391px;
+  width: 391px;
+}
+textarea{
+    min-width:391px;
+  max-width: 391px;
+  width: 391px;
+}
+
+.container-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+}
+
+.containerMenuAccount {
+  max-width: 400px;
+}
+
+.containerMenuAccount input {
+   min-width:391px;
+  max-width: 391px;
+}
+
+.containerBalance {
+  height: 120px;
+}
+
+.rowbutton {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 5px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+
+}
+
+.containerBalance .button_blue {
+  margin-top: auto;
+}
+
+
+.containerChangeCode,
+.containerBalance,
+.containerTransactions,
+.containerAutresOptions {
+  max-width: 300px;
+}
+
+
+/************************************************************/
+/*          Ui                       */
+/***********************************************************/
+
+h4 {
+  text-align: center;
+  margin: 0;
+  margin-block-start: 0;
+  margin-block-end: 0;
+}
+
+p {
+  margin: 0;
+  margin-block-start: 0;
+  margin-block-end: 0;
+}
+
+ol {
+  margin: 0;
+  padding-inline-start: 15px;
+}
+
+input {
+  height: 22px;
+}
+
+
+button {
+  height: 25px;
+  width: 100%;
+  max-width: 150px;
+  cursor: pointer;
+}
+
+.button_blue {
+   background-color: #2896DB;
+  color: white;
+  border: dodgerblue;
+  max-width: 100px;
+}
+
+.button_blue_outline {
+  background-color: transparent;
+  border-color: #2196f3;
+  color: dodgerblue;
+  max-width: 100px;
+}
+
+.button_blue_outline:hover {
+  background: #2196f3;
+  color: white;
+}
+
+.button_blue:hover {
+  background: #74d0f1;
+  color: white;
+}
+
+span {
+  color: #2196f3;
+}
+
+.hidden {
+  display: none;
+}

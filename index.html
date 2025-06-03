@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mobile Money Menu</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <section>
+      <h1>Système de gestion de budget personnel</h1>
+
+      <div class="containerCheckAccount">
+        <h4>Saisie le code</h4>
+        <form id="transferForm" class="container-form">
+          <input id="number" placeholder="Saisir le numéro de compte" />
+          <input id="code" placeholder="Saisir le code de compte" />
+          <button type="button" class="button_blue" onclick="validerCompte()">
+            Valider
+          </button>
+        </form>
+      </div>
+
+      <!-- ****************************************************
+          Container du menu accessible après vérification du compte                           
+         ******************************************************-->
+      <div class="containerMenuAccount hidden">
+        <h4>----------------------- Menu -----------------------</h4>
+        <p>
+          votre numéro de compte est : <span id="numeroCompteDisplay">...</span>
+        </p>
+        <p>Taper le numéro du service choisi</p>
+
+        <ol>
+          <li>Voir mon solde</li>
+          <li>Ajouter un revenu</li>
+          <li>Ajouter une dépense</li>
+          <li>Voir mes 5 dernières transactions</li>
+          <li>Statistiques</li>
+        </ol>
+
+        <input
+          id="serviceInput"
+          type="number"
+          min="1"
+          max="4"
+          placeholder="Saisir un nombre ici"
+        />
+        <div class="rowbutton">
+          <button type="button" class="button_blue" onclick="menu()">Ok</button>
+        </div>
+      </div>
+
+      <!-- ****************************************************
+        Container du solde du compte                          
+         ******************************************************-->
+      <div class="containerBalance hidden">
+        <p>
+          Le solde de votre compte est de
+          <span id="soldeCompte">...</span> FCFA. Voulez-vous retourner au menu
+          ?
+        </p>
+        <div class="rowbutton">
+          <button type="button" class="button_blue" onclick="retourMenu()">
+            Ok
+          </button>
+          <button
+            type="button"
+            class="button_blue_outline"
+            onclick="retourMenu()"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
+
+      <!-- ****************************************************
+       Container d'ajout transactions                          
+         ******************************************************-->
+      <div class="containerTransfert hidden">
+        <p>Saisir le montant, la categorie et la description</p>
+        <label for="id_montant">Montant :</label>
+        <input
+          id="id_montant"
+          type="number"
+          placeholder="Montant de la transaction"
+          required
+        />
+
+        <label for="id_categorie">Catégorie :</label>
+        <input id="id_categorie" disabled />
+        <label for="id_description">Description :</label>
+        <textarea
+          id="id_description"
+          placeholder="Saisissez une description"
+          rows="3"
+        ></textarea>
+    
+        <div class="rowbutton">
+          <button type="button" class="button_blue" onclick="ajouterTransaction()">
+            valider 
+          </button>
+          <button
+            type="button"
+            class="button_blue_outline"
+            onclick="retourMenu()"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
+
+      <!-- ****************************************************
+                          Container options 4                         
+         ******************************************************-->
+      <div class="containerChangeCode hidden">
+        <p>Changer le code de votre compte</p>
+        <input id="numCompteChange" placeholder="Saisir le numéro de compte" />
+        <input
+          id="nouveauCode"
+          type="text"
+          placeholder="Saisir le nouveau code"
+        />
+        <div class="rowbutton">
+          <button type="button" class="button_blue" onclick="changerCode()">
+            Ok
+          </button>
+          <button
+            type="button"
+            class="button_blue_outline"
+            onclick="retourMenu()"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
+
+      <!-- Container pour afficher les transactions -->
+      <div class="containerTransactions hidden">
+        <h4>--------------Transactions -------------</h4>
+        <div id="transactionsList"></div>
+        <div class="rowbutton">
+          <button type="button" class="button_blue" onclick="retourMenu()">
+            Retour
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ****************************************************
+                         Script Cdn Ajax                       
+         ******************************************************-->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+      integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script src="scripts.js"></script>
+  </body>
+</html>
