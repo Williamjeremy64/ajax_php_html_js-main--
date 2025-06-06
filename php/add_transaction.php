@@ -1,9 +1,18 @@
 <?php 
 include 'db/db_connect.php';
+session_start();
 
 header('Content-Type: application/json');
 
-if (!isset($_POST['numeroCompte']) || !isset($_POST['montant']) || !isset($_POST['type']) || !isset($_POST['description'])) {
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Utilisateur non connecté'
+    ]);
+    exit;
+}
+
+if (!isset($_POST['montant']) || !isset($_POST['categorie']) || !isset($_POST['description'])) {
     echo json_encode([
         'success' => false,
         'message' => 'Tous les champs sont requis'
@@ -11,72 +20,50 @@ if (!isset($_POST['numeroCompte']) || !isset($_POST['montant']) || !isset($_POST
     exit;
 }
 
-$numeroCompte = $_POST['numeroCompte'];
+$id_utilisateur = $_SESSION['user_id'];
 $montant = floatval($_POST['montant']);
-$type = strtolower($_POST['type']); // "revenu" ou "depense"
+$id_categorie = intval($_POST['categorie']);
 $description = $_POST['description'];
-
-if (!in_array($type, ['revenu', 'depense'])) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Type de transaction invalide'
-    ]);
-    exit;
-}
 
 $conn = connecterBDD();
 
 try {
-    $conn->begin_transaction();
-
-    // 1. Récupérer le solde actuel
-    $stmt = $conn->prepare("SELECT solde FROM comptes WHERE numero_compte = ?");
-    $stmt->bind_param("s", $numeroCompte);
+    // Vérifier si la catégorie existe et obtenir son type
+    $stmt = $conn->prepare("SELECT type FROM categories WHERE id = ?");
+    $stmt->bind_param("i", $id_categorie);
     $stmt->execute();
     $result = $stmt->get_result();
-
+    
     if ($result->num_rows === 0) {
-        throw new Exception("Compte introuvable");
+        throw new Exception("Catégorie invalide");
     }
-
-    $row = $result->fetch_assoc();
-    $ancienSolde = floatval($row['solde']);
-
-    // 2. Calculer le nouveau solde
-        $nouveauSolde = ($type === "revenu") ? $ancienSolde + $montant : $ancienSolde - $montant;
-
-        if ($nouveauSolde < 0 && $type === "depense") {
-        throw new Exception("Solde insuffisant pour effectuer cette dépense");
+    
+    $categorie = $result->fetch_assoc();
+    $type = $categorie['type'];
+    
+    // Insérer la transaction
+    $stmt = $conn->prepare("
+        INSERT INTO transactions (id_utilisateur, id_categorie, montant, description, date)
+        VALUES (?, ?, ?, ?, NOW())
+    ");
+    
+    $stmt->bind_param("iids", $id_utilisateur, $id_categorie, $montant, $description);
+    
+    if ($stmt->execute()) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Transaction ajoutée avec succès'
+        ]);
+    } else {
+        throw new Exception("Erreur lors de l'ajout de la transaction");
     }
-
-    // 3. Mettre à jour le solde
-    $stmt = $conn->prepare("UPDATE comptes SET solde = ? WHERE numero_compte = ?");
-    $stmt->bind_param("ds", $nouveauSolde, $numeroCompte);
-    if (!$stmt->execute()) {
-        throw new Exception("Erreur lors de la mise à jour du solde");
-    }
-
-    // 4. Insérer la transaction
-    $stmt = $conn->prepare("INSERT INTO transactions (numero_compte, type, montant, description) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("ssds", $numeroCompte, $type, $montant, $description);
-    if (!$stmt->execute()) {
-        throw new Exception("Erreur lors de l'enregistrement de la transaction");
-    }
-
-            $conn->commit();
-
-            echo json_encode([
-                'success' => true,
-        'message' => "Transaction enregistrée avec succès",
-        'nouveauSolde' => number_format($nouveauSolde, 2, '.', '')
-            ]);
 
 } catch (Exception $e) {
-            $conn->rollback();
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => 'Erreur: ' . $e->getMessage()
     ]);
 }
 
+$stmt->close();
 $conn->close();

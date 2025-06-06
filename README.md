@@ -11,42 +11,37 @@ Ce projet est une application web de gestion de budget personnel qui permet aux 
 
 ### Table `utilisateurs`
 - `id` : Identifiant unique (AUTO_INCREMENT)
-- `telephone` : Numéro de compte (VARCHAR, UNIQUE)
 - `nom` : Nom de l'utilisateur
-- `code` : Code d'accès
+- `telephone` : Numéro de téléphone (VARCHAR, UNIQUE)
 
-### Table `comptes`
+### Table `categories`
 - `id` : Identifiant unique (AUTO_INCREMENT)
-- `numero_compte` : Numéro de compte (VARCHAR, UNIQUE)
-- `solde` : Solde actuel (DECIMAL)
-- Clé étrangère vers `utilisateurs(telephone)`
+- `nom` : Nom de la catégorie
+- `type` : Type de catégorie ('revenu' ou 'depense')
 
 ### Table `transactions`
 - `id` : Identifiant unique (AUTO_INCREMENT)
-- `numero_compte` : Numéro de compte
-- `type` : Type de transaction ('revenu' ou 'depense')
+- `id_utilisateur` : ID de l'utilisateur (FOREIGN KEY)
+- `id_categorie` : ID de la catégorie (FOREIGN KEY)
 - `montant` : Montant de la transaction
+- `date` : Date de la transaction
 - `description` : Description de la transaction
-- `date_transaction` : Date et heure de la transaction
-- Clé étrangère vers `comptes(numero_compte)`
 
 ## Fonctionnalités Principales
 
 ### 1. Authentification
-- Vérification du numéro de compte et du code
-- Accès au menu principal après authentification
+- Vérification du numéro de téléphone
+- Code d'accès par défaut : #9999#
+- Création automatique du compte si l'utilisateur n'existe pas
+- Gestion de session pour maintenir l'utilisateur connecté
 
-### 2. Gestion du Solde
-- Affichage du solde actuel
-- Mise à jour automatique après chaque transaction
-
-### 3. Transactions
-- Ajout de revenus
-- Ajout de dépenses
-- Vérification du solde suffisant pour les dépenses
+### 2. Gestion des Transactions
+- Ajout de revenus (catégorie automatique)
+- Ajout de dépenses (catégorie automatique)
 - Historique des 5 dernières transactions
+- Affichage simplifié des transactions (Revenu/Dépense)
 
-### 4. Statistiques
+### 3. Statistiques
 - Affichage du solde total
 - Total des revenus
 - Total des dépenses
@@ -56,6 +51,7 @@ Ce projet est une application web de gestion de budget personnel qui permet aux 
 1. Créer la base de données :
 ```sql
 CREATE DATABASE dbbudget;
+USE dbbudget;
 ```
 
 2. Créer les tables :
@@ -63,49 +59,44 @@ CREATE DATABASE dbbudget;
 -- Table des utilisateurs
 CREATE TABLE utilisateurs (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    telephone VARCHAR(20) NOT NULL UNIQUE,
     nom VARCHAR(100) NOT NULL,
-    code VARCHAR(20) NOT NULL
+    telephone VARCHAR(20) NOT NULL UNIQUE
 );
 
--- Table des comptes
-CREATE TABLE comptes (
+-- Table des catégories
+CREATE TABLE categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    numero_compte VARCHAR(20) NOT NULL UNIQUE,
-    solde DECIMAL(10,2) DEFAULT 0.00,
-    FOREIGN KEY (numero_compte) REFERENCES utilisateurs(telephone)
+    nom VARCHAR(50) NOT NULL,
+    type ENUM('revenu', 'depense') NOT NULL
 );
 
 -- Table des transactions
 CREATE TABLE transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    numero_compte VARCHAR(20) NOT NULL,
-    type ENUM('revenu', 'depense') NOT NULL,
+    id_utilisateur INT NOT NULL,
+    id_categorie INT NOT NULL,
     montant DECIMAL(10,2) NOT NULL,
+    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     description TEXT,
-    date_transaction TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (numero_compte) REFERENCES comptes(numero_compte)
+    FOREIGN KEY (id_utilisateur) REFERENCES utilisateurs(id),
+    FOREIGN KEY (id_categorie) REFERENCES categories(id)
 );
 ```
 
-3. Insérer un utilisateur de test :
-```sql
-INSERT INTO utilisateurs (telephone, nom, code) VALUES 
-('123456', 'Test User', '#9999#');
-
-INSERT INTO comptes (numero_compte, solde) VALUES 
-('123456', 100000.00);
+3. Initialiser les catégories :
+```bash
+php php/init_categories.php
 ```
 
 ## Utilisation
 
 1. Accéder à l'application via : `http://localhost/jeremy-php/`
 2. Se connecter avec :
-   - Numéro de compte : 123456
-   - Code : #9999#
+   - Un numéro de téléphone (ex: 777030202)
+   - Le code d'accès : #9999#
 3. Utiliser le menu pour :
-   - Voir le solde (1)
-   - Ajouter un revenu (2)
-   - Ajouter une dépense (3)
-   - Voir les transactions (4)
-   - Voir les statistiques (5) 
+   - Voir le solde
+   - Ajouter un revenu (montant et description uniquement)
+   - Ajouter une dépense (montant et description uniquement)
+   - Voir l'historique des transactions
+   - Consulter les statistiques 

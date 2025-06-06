@@ -1,42 +1,70 @@
 <?php
 header('Content-Type: application/json');
+session_start();
 
 include 'db/db_connect.php';
 
-if (isset($_POST['numeroCompte']) && isset($_POST['code'])) {
-    $telephone = $_POST['numeroCompte'];
-    $code = $_POST['code'];
+if (!isset($_POST['numeroCompte']) || !isset($_POST['code'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Numéro de téléphone et code requis'
+    ]);
+    exit;
+}
 
-    $conn = connecterBDD();
+$telephone = $_POST['numeroCompte'];
+$code = $_POST['code'];
 
-    $sql = "SELECT * FROM utilisateurs WHERE telephone = ? AND code = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $telephone, $code);
+// Vérifier si le code est correct (#9999#)
+if ($code !== '#9999#') {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Code incorrect'
+    ]);
+    exit;
+}
+
+$conn = connecterBDD();
+
+try {
+    $stmt = $conn->prepare("SELECT id, nom FROM utilisateurs WHERE telephone = ?");
+    $stmt->bind_param("s", $telephone);
     $stmt->execute();
     $result = $stmt->get_result();
 
-    if ($result && $result->num_rows > 0) {
+    if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
-        $response = array(
+        $_SESSION['user_id'] = $row['id'];
+        echo json_encode([
             'success' => true,
-            'telephone' => $row['telephone'],
+            'id' => $row['id'],
             'nom' => $row['nom']
-        );
-        echo json_encode($response);
+        ]);
     } else {
-        $response = array(
-            'success' => false,
-            'message' => 'Code ou numéro de compte incorrect.'
-        );
-        echo json_encode($response);
+        // Si l'utilisateur n'existe pas, on le crée
+        $stmt = $conn->prepare("INSERT INTO utilisateurs (nom, telephone) VALUES (?, ?)");
+        $nom = "Utilisateur " . $telephone;
+        $stmt->bind_param("ss", $nom, $telephone);
+        
+        if ($stmt->execute()) {
+            $id = $conn->insert_id;
+            $_SESSION['user_id'] = $id;
+            echo json_encode([
+                'success' => true,
+                'id' => $id,
+                'nom' => $nom
+            ]);
+        } else {
+            throw new Exception("Erreur lors de la création du compte");
+        }
     }
-    $stmt->close();
-    $conn->close();
-} else {
-    $response = array(
+} catch (Exception $e) {
+    echo json_encode([
         'success' => false,
-        'message' => 'Paramètres manquants.'
-    );
-    echo json_encode($response);
+        'message' => 'Erreur lors de la vérification du compte: ' . $e->getMessage()
+    ]);
 }
+
+$stmt->close();
+$conn->close();
 ?>

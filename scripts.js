@@ -13,8 +13,7 @@ function menu() {
   var choixService = document.getElementById("serviceInput").value;
   switch (choixService) {
     case "1":
-      var numeroCompte = document.getElementById("numeroCompteDisplay").textContent.trim();
-      fetchAndDisplaySolde(numeroCompte);
+      fetchAndDisplaySolde();
       break;
     case "2":
       afficherFormulaireTransaction("revenu");
@@ -40,7 +39,7 @@ function menu() {
  * Cache tous les conteneurs pour éviter les superpositions
  */
 function cacherTousLesContainers() {
-  var containers = document.querySelectorAll(".containerMenuAccount, .containerAutresOptions, .containerChangeCode, .containerTransactions");
+  var containers = document.querySelectorAll(".containerMenuAccount, .containerAutresOptions, .containerChangeCode, .containerTransactions, .containerTransfert, .containerBalance, .containerStats");
   containers.forEach(container => {
     container.classList.add("hidden");
   });
@@ -54,12 +53,18 @@ function afficherChangeCodeForm() {
 function afficherTransactions() {
   cacherTousLesContainers();
   document.querySelector(".containerTransactions").classList.remove("hidden");
-  fetchTransactions(document.getElementById("numeroCompteDisplay").textContent.trim());
+  fetchTransactions();
 }
 
 function afficherSolde() {
-  document.querySelector(".containerMenuAccount").classList.add("hidden");
+  cacherTousLesContainers();
   document.querySelector(".containerBalance").classList.remove("hidden");
+}
+
+function afficherStatsContainer() {
+  cacherTousLesContainers();
+  document.querySelector(".containerStats").classList.remove("hidden");
+  fetchAndDisplayStats();
 }
 
 /**
@@ -67,12 +72,17 @@ function afficherSolde() {
  * @param {string} type - Le type de transaction ('revenu' ou 'depense')
  */
 function afficherFormulaireTransaction(type) {
-  document.querySelector(".containerMenuAccount").classList.add("hidden");
+  cacherTousLesContainers();
   document.querySelector(".containerTransfert").classList.remove("hidden");
 
-  const champCategorie = document.getElementById("id_categorie");
-  champCategorie.value = type.charAt(0) + type.slice(1);
+  // Mettre à jour le titre et la catégorie en fonction du type
+  const titre = type === 'revenu' ? 'Ajout du revenu' : 'Ajout de la dépense';
+  document.querySelector('.containerTransfert h2').textContent = titre;
   
+  // Définir la catégorie en fonction du type
+  document.getElementById("id_categorie").value = type === 'revenu' ? '1' : '5';
+  
+  // Réinitialiser les champs
   document.getElementById("id_montant").value = "";
   document.getElementById("id_description").value = "";
 }
@@ -87,11 +97,11 @@ function afficherFormulaireTransaction(type) {
 function ajouterTransaction() {
   const numeroCompte = document.getElementById("numeroCompteDisplay").textContent.trim();
   const montant = document.getElementById("id_montant").value.trim();
+  const categorie = document.getElementById("id_categorie").value;
   const description = document.getElementById("id_description").value.trim();
-  const type = document.getElementById("id_categorie").value.trim();
 
   if (!montant || !description) {
-    alert("Tous les champs sont requis.");
+    alert("Le montant et la description sont requis.");
     return;
   }
 
@@ -100,17 +110,15 @@ function ajouterTransaction() {
     type: "POST",
     data: {
       numeroCompte: numeroCompte,
-      type: type,
       montant: montant,
-      description: description,
+      categorie: categorie,
+      description: description
     },
     dataType: "json",
     success: function (response) {
       if (response.success) {
-        alert(response.message + "\nNouveau solde : " + response.nouveauSolde);
-        if (confirm("Retour au menu ?")) {
-          menu();
-        }
+        alert(response.message);
+        retourMenu();
       } else {
         alert("Erreur : " + response.message);
       }
@@ -126,11 +134,7 @@ function ajouterTransaction() {
  * Retourne au menu principal en masquant les autres conteneurs
  */
 function retourMenu() {
-  document
-    .querySelectorAll(
-      ".containerBalance, .containerTransfert, .containerPaiementFacture, .containerChangeCode, .containerTransactions"
-    )
-    .forEach((container) => container.classList.add("hidden"));
+  cacherTousLesContainers();
   document.querySelector(".containerMenuAccount").classList.remove("hidden");
 }
 
@@ -139,7 +143,7 @@ function retourMenu() {
 /***********************************************************/
 /**
  * Valide les identifiants de connexion
- * Vérifie le numéro de compte et le code
+ * Vérifie le numéro de téléphone et le code
  */
 function validerCompte() {
   var numeroCompte = document.getElementById("number").value;
@@ -179,19 +183,16 @@ function validerCompte() {
 /***********************************************************/
 /**
  * Récupère et affiche le solde du compte
- * @param {string} numeroCompte - Le numéro de compte
  */
-function fetchAndDisplaySolde(numeroCompte) {
+function fetchAndDisplaySolde() {
   $.ajax({
     url: 'php/fetch_balance.php',
     type: 'POST',
     dataType: 'json',
-    data: { numeroCompte: numeroCompte },
     success: function(response) {
       if (response.success) {
         $('#soldeCompte').text(response.solde + ' FCFA');
         afficherSolde();
-        $('#numeroCompteAffiche').text(numeroCompte);
       } else {
         alert("Erreur : " + response.message);
       }
@@ -204,13 +205,11 @@ function fetchAndDisplaySolde(numeroCompte) {
 
 /**
  * Récupère et affiche les 5 dernières transactions
- * @param {string} numeroCompte - Le numéro de compte
  */
-function fetchTransactions(numeroCompte) {
+function fetchTransactions() {
   $.ajax({
     url: 'php/fetch_transactions.php',
     type: 'POST',
-    data: { numeroCompte: numeroCompte },
     dataType: 'json',
     success: function(response) {
       if (response.success) {
@@ -222,7 +221,8 @@ function fetchTransactions(numeroCompte) {
             const montant = parseFloat(t.montant);
             const montantFormatted = new Intl.NumberFormat('fr-FR').format(montant);
             const signe = t.type === 'revenu' ? '+' : '-';
-            html += `<p>${t.date} - ${t.type === 'revenu' ? 'Revenu' : 'Dépense'} : ${signe}${montantFormatted} FCFA</p>`;
+            const typeAffichage = t.type === 'revenu' ? 'Revenu' : 'Dépense';
+            html += `<p>${t.date} - ${typeAffichage} : ${signe}${montantFormatted} FCFA<br><small>${t.description}</small></p>`;
           });
         }
         document.getElementById("transactionsList").innerHTML = html;
@@ -239,28 +239,13 @@ function fetchTransactions(numeroCompte) {
   });
 }
 
-/************************************************************/
-/*          Gestion des statistiques                        */
-/***********************************************************/
-/**
- * Affiche le conteneur des statistiques
- */
-function afficherStatsContainer() {
-  cacherTousLesContainers();
-  document.querySelector(".containerStats").classList.remove("hidden");
-  fetchAndDisplayStats();
-}
-
 /**
  * Récupère et affiche les statistiques du compte
- * Affiche le solde, les revenus et les dépenses
  */
 function fetchAndDisplayStats() {
-  const numeroCompte = document.getElementById("numeroCompteDisplay").textContent.trim();
   $.ajax({
     url: 'php/fetch_stats.php',
     type: 'POST',
-    data: { numeroCompte: numeroCompte },
     dataType: 'json',
     success: function(response) {
       if (response.success) {

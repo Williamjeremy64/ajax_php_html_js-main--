@@ -1,40 +1,47 @@
 <?php
 include 'db/db_connect.php';
+session_start();
+
 header('Content-Type: application/json');
 
-// Vérification de la présence des données POST
-if (isset($_POST['numeroCompte'])) {
-    $numeroCompte = $_POST['numeroCompte'];
-    $conn = connecterBDD();
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Utilisateur non connecté'
+    ]);
+    exit;
+}
 
-    // Utilisation d'une requête préparée pour la sécurité
-    $stmt = $conn->prepare("SELECT solde FROM comptes WHERE numero_compte = ?");
-    $stmt->bind_param("s", $numeroCompte);
+$id_utilisateur = $_SESSION['user_id'];
+$conn = connecterBDD();
+
+try {
+    // Calculer le solde total (revenus - dépenses)
+    $stmt = $conn->prepare("
+        SELECT 
+            COALESCE(SUM(CASE WHEN c.type = 'revenu' THEN t.montant ELSE -t.montant END), 0) as solde
+        FROM transactions t
+        JOIN categories c ON t.id_categorie = c.id
+        WHERE t.id_utilisateur = ?
+    ");
+    
+    $stmt->bind_param("i", $id_utilisateur);
     $stmt->execute();
     $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $response = array(
-            'success' => true,
-            'solde' => number_format($row["solde"], 2, '.', '')
-        );
-        echo json_encode($response);
-    } else {
-        $response = array(
-            'success' => false,
-            'message' => 'Aucun compte trouvé avec ce numéro.'
-        );
-        echo json_encode($response);
-    }
+    $row = $result->fetch_assoc();
     
-    $stmt->close();
-    $conn->close();
-} else {
-    $response = array(
+    echo json_encode([
+        'success' => true,
+        'solde' => number_format($row['solde'], 2, '.', '')
+    ]);
+
+} catch (Exception $e) {
+    echo json_encode([
         'success' => false,
-        'message' => 'Paramètre manquant : numéroCompte.'
-    );
-    echo json_encode($response);
+        'message' => 'Erreur lors de la récupération du solde: ' . $e->getMessage()
+    ]);
 }
+
+$stmt->close();
+$conn->close();
 ?>
