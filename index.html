@@ -42,7 +42,7 @@
           id="serviceInput"
           type="number"
           min="1"
-          max="4"
+          max="5"
           placeholder="Saisir un nombre ici"
         />
         <div class="rowbutton">
@@ -138,6 +138,16 @@
       <div class="containerTransactions hidden">
         <h4>--------------Transactions -------------</h4>
         <div id="transactionsList"></div>
+        <div class="rowbutton">
+          <button type="button" class="button_blue" onclick="retourMenu()">
+            Retour
+          </button>
+        </div>
+      </div>
+      <!-- Container pour afficher les statistiques -->
+      <div class="containerStats hidden">
+        <h4>--------------Statistiques -------------</h4>
+        <div id="statsList"></div>
         <div class="rowbutton">
           <button type="button" class="button_blue" onclick="retourMenu()">
             Retour

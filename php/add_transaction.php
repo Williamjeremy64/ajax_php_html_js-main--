@@ -3,82 +3,79 @@ include 'db/db_connect.php';
 
 header('Content-Type: application/json');
 
-function nettoyerTexte($texte) {
-    // Convertir en minuscules
-    $texte = strtolower($texte);
-    // Supprimer les accents
-    $texte = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texte);
-    return $texte;
+if (!isset($_POST['numeroCompte']) || !isset($_POST['montant']) || !isset($_POST['type']) || !isset($_POST['description'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Tous les champs sont requis'
+    ]);
+    exit;
 }
 
 $numeroCompte = $_POST['numeroCompte'];
 $montant = floatval($_POST['montant']);
-$typeBrut = $_POST['type'];
+$type = strtolower($_POST['type']); // "revenu" ou "depense"
 $description = $_POST['description'];
 
-$type = nettoyerTexte($typeBrut); // "revenu" ou "depense"
+if (!in_array($type, ['revenu', 'depense'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Type de transaction invalide'
+    ]);
+    exit;
+}
 
 $conn = connecterBDD();
 
-// 1. Récupérer l'utilisateur
-$sqlUser = "SELECT id, solde FROM utilisateurs WHERE telephone = '$numeroCompte'";
-$resultUser = $conn->query($sqlUser);
+try {
+    $conn->begin_transaction();
 
-if ($resultUser->num_rows > 0) {
-    $row = $resultUser->fetch_assoc();
-    $idUtilisateur = $row['id'];
+    // 1. Récupérer le solde actuel
+    $stmt = $conn->prepare("SELECT solde FROM comptes WHERE numero_compte = ?");
+    $stmt->bind_param("s", $numeroCompte);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 0) {
+        throw new Exception("Compte introuvable");
+    }
+
+    $row = $result->fetch_assoc();
     $ancienSolde = floatval($row['solde']);
 
-    // 2. Récupérer une catégorie correspondant au type
-    $sqlCat = "SELECT id FROM categories WHERE LOWER(type) = '$type' LIMIT 1";
-    $resultCat = $conn->query($sqlCat);
-
-    if ($resultCat->num_rows > 0) {
-        $cat = $resultCat->fetch_assoc();
-        $idCategorie = $cat['id'];
-
-        // 3. Calcul du nouveau solde
+    // 2. Calculer le nouveau solde
         $nouveauSolde = ($type === "revenu") ? $ancienSolde + $montant : $ancienSolde - $montant;
 
         if ($nouveauSolde < 0 && $type === "depense") {
-            echo json_encode([
-                'success' => false,
-                'message' => "solde insuffisant pour une depense"
-            ]);
-            exit;
-        }
+        throw new Exception("Solde insuffisant pour effectuer cette dépense");
+    }
 
-        $conn->autocommit(FALSE);
+    // 3. Mettre à jour le solde
+    $stmt = $conn->prepare("UPDATE comptes SET solde = ? WHERE numero_compte = ?");
+    $stmt->bind_param("ds", $nouveauSolde, $numeroCompte);
+    if (!$stmt->execute()) {
+        throw new Exception("Erreur lors de la mise à jour du solde");
+    }
 
-        // 4. Mettre à jour le solde et insérer la transaction
-        $sqlUpdate = "UPDATE utilisateurs SET solde = '$nouveauSolde' WHERE id = '$idUtilisateur'";
-        $sqlInsert = "INSERT INTO transactions (id_utilisateur, id_categorie, montant, date, description) 
-                      VALUES ('$idUtilisateur', '$idCategorie', '$montant', NOW(), '$description')";
+    // 4. Insérer la transaction
+    $stmt = $conn->prepare("INSERT INTO transactions (numero_compte, type, montant, description) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssds", $numeroCompte, $type, $montant, $description);
+    if (!$stmt->execute()) {
+        throw new Exception("Erreur lors de l'enregistrement de la transaction");
+    }
 
-        if ($conn->query($sqlUpdate) && $conn->query($sqlInsert)) {
             $conn->commit();
+
             echo json_encode([
                 'success' => true,
-                'message' => "transaction enregistree avec succes",
-                'nouveauSolde' => $nouveauSolde
+        'message' => "Transaction enregistrée avec succès",
+        'nouveauSolde' => number_format($nouveauSolde, 2, '.', '')
             ]);
-        } else {
+
+} catch (Exception $e) {
             $conn->rollback();
-            echo json_encode([
-                'success' => false,
-                'message' => "erreur lors de l'enregistrement"
-            ]);
-        }
-    } else {
-        echo json_encode([
-            'success' => false,
-            'message' => "categorie introuvable pour le type '$type'"
-        ]);
-    }
-} else {
     echo json_encode([
         'success' => false,
-        'message' => "utilisateur introuvable"
+        'message' => $e->getMessage()
     ]);
 }
 

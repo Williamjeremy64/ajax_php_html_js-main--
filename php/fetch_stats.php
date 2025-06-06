@@ -2,31 +2,42 @@
 include 'db/db_connect.php';
 header('Content-Type: application/json');
 
-$numeroCompte = $_POST['numeroCompte'];
+if (!isset($_POST['numeroCompte'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Numéro de compte manquant'
+    ]);
+    exit;
+}
 
+$numeroCompte = $_POST['numeroCompte'];
 $conn = connecterBDD();
 
-// Récupérer l'ID utilisateur
-$stmt = $conn->prepare("SELECT id FROM utilisateurs WHERE telephone = ?");
+// Récupérer le solde actuel
+$stmt = $conn->prepare("SELECT solde FROM comptes WHERE numero_compte = ?");
 $stmt->bind_param("s", $numeroCompte);
 $stmt->execute();
-$idUtilisateur = $stmt->get_result()->fetch_assoc()['id'];
+$result = $stmt->get_result();
+$solde = $result->fetch_assoc()['solde'] ?? 0;
 
-// Requêtes statistiques
-$reqRevenus = $conn->prepare("SELECT SUM(montant) FROM transactions t JOIN categories c ON t.id_categorie = c.id WHERE t.id_utilisateur = ? AND c.type = 'revenu'");
-$reqRevenus->bind_param("i", $idUtilisateur);
-$reqRevenus->execute();
-$revenus = $reqRevenus->get_result()->fetch_column() ?? 0;
+// Calculer les revenus
+$stmt = $conn->prepare("SELECT COALESCE(SUM(montant), 0) as total FROM transactions WHERE numero_compte = ? AND type = 'revenu'");
+$stmt->bind_param("s", $numeroCompte);
+$stmt->execute();
+$revenus = $stmt->get_result()->fetch_assoc()['total'];
 
-$reqDepenses = $conn->prepare("SELECT SUM(montant) FROM transactions t JOIN categories c ON t.id_categorie = c.id WHERE t.id_utilisateur = ? AND c.type = 'depense'");
-$reqDepenses->bind_param("i", $idUtilisateur);
-$reqDepenses->execute();
-$depenses = $reqDepenses->get_result()->fetch_column() ?? 0;
+// Calculer les dépenses
+$stmt = $conn->prepare("SELECT COALESCE(SUM(montant), 0) as total FROM transactions WHERE numero_compte = ? AND type = 'depense'");
+$stmt->bind_param("s", $numeroCompte);
+$stmt->execute();
+$depenses = $stmt->get_result()->fetch_assoc()['total'];
 
 echo json_encode([
     'success' => true,
-    'solde' => $revenus - $depenses,
-    'revenus' => $revenus,
-    'depenses' => $depenses
+    'solde' => number_format($solde, 2, '.', ''),
+    'revenus' => number_format($revenus, 2, '.', ''),
+    'depenses' => number_format($depenses, 2, '.', '')
 ]);
+
+$conn->close();
 ?>
