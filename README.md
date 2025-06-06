@@ -16,7 +16,7 @@ Ce projet est une application web de gestion de budget personnel qui permet aux 
 
 ### Table `categories`
 - `id` : Identifiant unique (AUTO_INCREMENT)
-- `nom` : Nom de la catégorie
+- `nom` : Nom de la catégorie ('Revenu' ou 'Dépense')
 - `type` : Type de catégorie ('revenu' ou 'depense')
 
 ### Table `transactions`
@@ -50,12 +50,13 @@ Ce projet est une application web de gestion de budget personnel qui permet aux 
 
 1. Créer la base de données :
 ```sql
+-- Supprimer la base de données existante si elle existe
+DROP DATABASE IF EXISTS dbbudget;
+
+-- Créer une nouvelle base de données
 CREATE DATABASE dbbudget;
 USE dbbudget;
-```
 
-2. Créer les tables :
-```sql
 -- Table des utilisateurs
 CREATE TABLE utilisateurs (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -81,11 +82,11 @@ CREATE TABLE transactions (
     FOREIGN KEY (id_utilisateur) REFERENCES utilisateurs(id),
     FOREIGN KEY (id_categorie) REFERENCES categories(id)
 );
-```
 
-3. Initialiser les catégories :
-```bash
-php php/init_categories.php
+-- Insérer les deux catégories de base
+INSERT INTO categories (nom, type) VALUES 
+('Revenu', 'revenu'),
+('Dépense', 'depense');
 ```
 
 ## Utilisation

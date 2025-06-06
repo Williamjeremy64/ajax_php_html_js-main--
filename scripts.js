@@ -79,8 +79,8 @@ function afficherFormulaireTransaction(type) {
   const titre = type === 'revenu' ? 'Ajout du revenu' : 'Ajout de la dépense';
   document.querySelector('.containerTransfert h2').textContent = titre;
   
-  // Définir la catégorie en fonction du type
-  document.getElementById("id_categorie").value = type === 'revenu' ? '1' : '5';
+  // Définir la catégorie en fonction du type (1 pour Revenu, 2 pour Dépense)
+  document.getElementById("id_categorie").value = type === 'revenu' ? '1' : '2';
   
   // Réinitialiser les champs
   document.getElementById("id_montant").value = "";

@@ -7,19 +7,10 @@ try {
     // Supprimer les catégories existantes
     $conn->query("DELETE FROM categories");
     
-    // Insérer les catégories de base
+    // Insérer les deux catégories de base
     $categories = [
-        ['Salaire', 'revenu'],
-        ['Investissement', 'revenu'],
-        ['Cadeau', 'revenu'],
-        ['Autre revenu', 'revenu'],
-        ['Alimentation', 'depense'],
-        ['Transport', 'depense'],
-        ['Logement', 'depense'],
-        ['Loisirs', 'depense'],
-        ['Santé', 'depense'],
-        ['Éducation', 'depense'],
-        ['Autre dépense', 'depense']
+        ['Revenu', 'revenu'],
+        ['Dépense', 'depense']
     ];
     
     $stmt = $conn->prepare("INSERT INTO categories (nom, type) VALUES (?, ?)");
